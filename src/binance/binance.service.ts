@@ -36,6 +36,12 @@ export class BinanceService implements OnModuleInit {
     this.apiKey = this.configService.binanceApiKey;
     this.apiSecret = this.configService.binanceApiSecret;
 
+    this.logger.log('Binance API Key loaded:', this.apiKey ? 'Yes' : 'No');
+    this.logger.log(
+      'Binance API Secret loaded:',
+      this.apiSecret ? 'Yes' : 'No',
+    );
+
     if (!this.apiKey || !this.apiSecret) {
       this.logger.error(
         'Binance API credentials are missing. Please check your environment variables.',
@@ -45,7 +51,9 @@ export class BinanceService implements OnModuleInit {
 
   async onModuleInit() {
     if (this.apiKey && this.apiSecret) {
-      await this.initUserStream();
+      this.logger.log('Binance service initialized successfully');
+      // User stream disabled due to API limitations
+      // Bot will work without real-time notifications
     }
   }
 
@@ -161,10 +169,21 @@ export class BinanceService implements OnModuleInit {
 
   private async initUserStream() {
     try {
+      this.logger.log(
+        'Initializing user stream with API key:',
+        this.apiKey ? 'Present' : 'Missing',
+      );
+
+      // Try the correct endpoint for user data stream
       const res = await axios.post(
         `${this.baseUrl}/api/v3/userDataStream`,
-        {},
-        { headers: { 'X-MBX-APIKEY': this.apiKey } },
+        null,
+        {
+          headers: {
+            'X-MBX-APIKEY': this.apiKey,
+            'Content-Type': 'application/json',
+          },
+        },
       );
 
       this.listenKey = res.data.listenKey;
@@ -173,6 +192,11 @@ export class BinanceService implements OnModuleInit {
       this.connectWebSocket();
     } catch (error) {
       this.logger.error('Failed to initialize user stream', error);
+      if (error.response) {
+        this.logger.error('Response status:', error.response.status);
+        this.logger.error('Response data:', error.response.data);
+      }
+      // Don't throw the error, just log it
     }
   }
 
