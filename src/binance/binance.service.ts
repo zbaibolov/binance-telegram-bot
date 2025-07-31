@@ -23,6 +23,17 @@ interface BinanceOrder {
   time: number;
 }
 
+interface OrderWithPnL extends BinanceOrder {
+  currentPrice?: string;
+  profitLoss?: string;
+  profitLossPercent?: string;
+}
+
+interface MarketPrice {
+  symbol: string;
+  price: string;
+}
+
 @Injectable()
 export class BinanceService implements OnModuleInit {
   private readonly logger = new Logger(BinanceService.name);
@@ -89,6 +100,78 @@ export class BinanceService implements OnModuleInit {
       );
     } catch (error) {
       this.logger.error('Failed to get wallet balance', error);
+      throw error;
+    }
+  }
+
+  async getCurrentPrices(symbols: string[]): Promise<MarketPrice[]> {
+    try {
+      const response = await axios.get(`${this.baseUrl}/api/v3/ticker/price`);
+      const allPrices = response.data;
+
+      return allPrices.filter((price: MarketPrice) =>
+        symbols.includes(price.symbol),
+      );
+    } catch (error) {
+      this.logger.error('Failed to get current prices', error);
+      throw error;
+    }
+  }
+
+  async getOpenOrdersWithPnL(symbol?: string): Promise<OrderWithPnL[]> {
+    try {
+      const orders = await this.getOpenOrders(symbol);
+
+      if (orders.length === 0) {
+        return [];
+      }
+
+      // Get unique symbols from orders
+      const symbols = [...new Set(orders.map((order) => order.symbol))];
+
+      // Get current prices for all symbols
+      const currentPrices = await this.getCurrentPrices(symbols);
+      const priceMap = new Map(
+        currentPrices.map((price) => [price.symbol, price.price]),
+      );
+
+      // Calculate P&L for each order
+      const ordersWithPnL: OrderWithPnL[] = orders.map((order) => {
+        const currentPrice = priceMap.get(order.symbol);
+        const orderWithPnL: OrderWithPnL = { ...order };
+
+        if (currentPrice) {
+          orderWithPnL.currentPrice = currentPrice;
+
+          const orderPrice = parseFloat(order.price);
+          const currentPriceNum = parseFloat(currentPrice);
+          const quantity = parseFloat(order.origQty);
+
+          if (order.side === 'BUY') {
+            // For buy orders, profit if current price > order price
+            const profitLoss = (currentPriceNum - orderPrice) * quantity;
+            const profitLossPercent =
+              ((currentPriceNum - orderPrice) / orderPrice) * 100;
+
+            orderWithPnL.profitLoss = profitLoss.toFixed(2);
+            orderWithPnL.profitLossPercent = profitLossPercent.toFixed(2);
+          } else {
+            // For sell orders, profit if current price < order price
+            const profitLoss = (orderPrice - currentPriceNum) * quantity;
+            const profitLossPercent =
+              ((orderPrice - currentPriceNum) / orderPrice) * 100;
+
+            orderWithPnL.profitLoss = profitLoss.toFixed(2);
+            orderWithPnL.profitLossPercent = profitLossPercent.toFixed(2);
+          }
+        }
+
+        return orderWithPnL;
+      });
+
+      return ordersWithPnL;
+    } catch (error) {
+      this.logger.error('Failed to get open orders with P&L', error);
       throw error;
     }
   }

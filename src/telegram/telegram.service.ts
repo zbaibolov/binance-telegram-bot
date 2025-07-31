@@ -39,6 +39,9 @@ export class TelegramService implements OnModuleInit {
           case '/orders':
             await this.handleOrdersCommand(chatId);
             break;
+          case '/portfolio':
+            await this.handlePortfolioCommand(chatId);
+            break;
           case '/help':
             await this.handleHelpCommand(chatId);
             break;
@@ -68,7 +71,8 @@ export class TelegramService implements OnModuleInit {
 
 Available commands:
 /balance - Get wallet balance
-/orders - Get open orders
+/orders - Get open orders with P&L
+/portfolio - Get comprehensive portfolio summary
 /help - Show this help message
 
 Your bot is now connected to Binance! 📈
@@ -89,6 +93,7 @@ Your bot is now connected to Binance! 📈
       }
 
       let message = '💰 Wallet Balance:\n\n';
+
       balances.forEach((balance) => {
         const free = parseFloat(balance.free);
         const locked = parseFloat(balance.locked);
@@ -114,21 +119,53 @@ Your bot is now connected to Binance! 📈
 
   private async handleOrdersCommand(chatId: number) {
     try {
-      const orders = await this.binanceService.getOpenOrders();
+      const ordersWithPnL = await this.binanceService.getOpenOrdersWithPnL();
 
-      if (orders.length === 0) {
+      if (ordersWithPnL.length === 0) {
         await this.bot.sendMessage(chatId, '📋 No open orders found.');
         return;
       }
 
-      let message = '📋 Open Orders:\n\n';
-      orders.forEach((order) => {
+      let message = '📋 Open Orders with P&L:\n\n';
+      let totalPnL = 0;
+
+      ordersWithPnL.forEach((order) => {
+        const orderPrice = parseFloat(order.price);
+        const quantity = parseFloat(order.origQty);
+        const currentPrice = order.currentPrice
+          ? parseFloat(order.currentPrice)
+          : 0;
+        const profitLoss = order.profitLoss ? parseFloat(order.profitLoss) : 0;
+        const profitLossPercent = order.profitLossPercent
+          ? parseFloat(order.profitLossPercent)
+          : 0;
+
+        totalPnL += profitLoss;
+
         message += `${order.symbol} ${order.side}\n`;
-        message += `  Price: ${order.price}\n`;
-        message += `  Quantity: ${order.origQty}\n`;
+        message += `  Order Price: $${orderPrice.toFixed(8)}\n`;
+        message += `  Current Price: $${currentPrice.toFixed(8)}\n`;
+        message += `  Quantity: ${quantity.toFixed(8)}\n`;
+        message += `  P&L: $${profitLoss.toFixed(2)} (${profitLossPercent.toFixed(2)}%)\n`;
         message += `  Status: ${order.status}\n`;
         message += `  Type: ${order.type}\n\n`;
       });
+
+      // Add total P&L summary
+      message += `📊 Total P&L: $${totalPnL.toFixed(2)}\n`;
+
+      // Add wallet balance summary
+      try {
+        const balances = await this.binanceService.getWalletBalance();
+        const usdtBalance = balances.find((b) => b.asset === 'USDT');
+        if (usdtBalance) {
+          const totalUsdt =
+            parseFloat(usdtBalance.free) + parseFloat(usdtBalance.locked);
+          message += `💰 Total USDT Balance: $${totalUsdt.toFixed(2)}`;
+        }
+      } catch (error) {
+        this.logger.error('Error getting balance for summary', error);
+      }
 
       await this.bot.sendMessage(chatId, message);
     } catch (error) {
@@ -140,6 +177,72 @@ Your bot is now connected to Binance! 📈
     }
   }
 
+  private async handlePortfolioCommand(chatId: number) {
+    try {
+      // Get wallet balance
+      const balances = await this.binanceService.getWalletBalance();
+
+      // Get open orders with P&L
+      const ordersWithPnL = await this.binanceService.getOpenOrdersWithPnL();
+
+      let message = '📊 Portfolio Summary:\n\n';
+
+      // Wallet Balance Section
+      message += '💰 Wallet Balance:\n';
+      if (balances.length === 0) {
+        message += '  No balances found\n';
+      } else {
+        balances.forEach((balance) => {
+          const free = parseFloat(balance.free);
+          const locked = parseFloat(balance.locked);
+          const total = free + locked;
+
+          if (total > 0) {
+            message += `  ${balance.asset}: ${total.toFixed(8)}\n`;
+          }
+        });
+      }
+
+      message += '\n📋 Open Orders:\n';
+      if (ordersWithPnL.length === 0) {
+        message += '  No open orders\n';
+      } else {
+        let totalPnL = 0;
+        ordersWithPnL.forEach((order) => {
+          const profitLoss = order.profitLoss
+            ? parseFloat(order.profitLoss)
+            : 0;
+          totalPnL += profitLoss;
+
+          const profitLossPercent = order.profitLossPercent
+            ? parseFloat(order.profitLossPercent)
+            : 0;
+          const pnlSign = profitLoss >= 0 ? '📈' : '📉';
+
+          message += `  ${order.symbol} ${order.side}: ${pnlSign} $${profitLoss.toFixed(2)} (${profitLossPercent.toFixed(2)}%)\n`;
+        });
+
+        message += `\n📊 Total P&L: $${totalPnL.toFixed(2)}\n`;
+      }
+
+      // USDT Balance Summary
+      const usdtBalance = balances.find((b) => b.asset === 'USDT');
+      if (usdtBalance) {
+        const totalUsdt =
+          parseFloat(usdtBalance.free) + parseFloat(usdtBalance.locked);
+        message += `\n💵 Total USDT: $${totalUsdt.toFixed(2)}`;
+      }
+
+      await this.bot.sendMessage(chatId, message);
+    } catch (error) {
+      this.logger.error('Error getting portfolio', error);
+      await this.bot.sendMessage(
+        chatId,
+        '❌ Failed to get portfolio information. Please check your API credentials.',
+      );
+    }
+  }
+
   private async handleHelpCommand(chatId: number) {
     const message = `
 🤖 Binance Telegram Bot Help
@@ -147,10 +250,11 @@ Your bot is now connected to Binance! 📈
 Available commands:
 /start - Start the bot and see welcome message
 /balance - Get your wallet balance
-/orders - Get your open orders
+/orders - Get your open orders with P&L and current prices
+/portfolio - Get comprehensive portfolio summary with wallet and orders
 /help - Show this help message
 
-The bot connects to your Binance account and provides real-time information about your trading activities.
+The bot connects to your Binance account and provides real-time information about your trading activities including profit/loss calculations.
     `;
     await this.bot.sendMessage(chatId, message);
   }
