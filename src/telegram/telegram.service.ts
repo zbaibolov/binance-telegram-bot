@@ -146,7 +146,13 @@ Your bot is now connected to Binance! 📈
         message += `  Order Price: $${orderPrice.toFixed(8)}\n`;
         message += `  Current Price: $${currentPrice.toFixed(8)}\n`;
         message += `  Quantity: ${quantity.toFixed(8)}\n`;
-        message += `  P&L: $${profitLoss.toFixed(2)} (${profitLossPercent.toFixed(2)}%)\n`;
+        
+        if (order.side === 'BUY') {
+          message += `  P&L: $${profitLoss.toFixed(2)} (${profitLossPercent.toFixed(2)}%)\n`;
+        } else {
+          message += `  Opportunity: $${profitLoss.toFixed(2)} (${profitLossPercent.toFixed(2)}%)\n`;
+        }
+        
         message += `  Status: ${order.status}\n`;
         message += `  Type: ${order.type}\n\n`;
       });
@@ -219,7 +225,11 @@ Your bot is now connected to Binance! 📈
             : 0;
           const pnlSign = profitLoss >= 0 ? '📈' : '📉';
 
-          message += `  ${order.symbol} ${order.side}: ${pnlSign} $${profitLoss.toFixed(2)} (${profitLossPercent.toFixed(2)}%)\n`;
+          if (order.side === 'BUY') {
+            message += `  ${order.symbol} ${order.side}: ${pnlSign} $${profitLoss.toFixed(2)} (${profitLossPercent.toFixed(2)}%)\n`;
+          } else {
+            message += `  ${order.symbol} ${order.side}: ${pnlSign} $${profitLoss.toFixed(2)} (${profitLossPercent.toFixed(2)}%)\n`;
+          }
         });
 
         message += `\n📊 Total P&L: $${totalPnL.toFixed(2)}\n`;

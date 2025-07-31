@@ -157,11 +157,21 @@ export class BinanceService implements OnModuleInit {
             orderWithPnL.profitLossPercent = profitLossPercent.toFixed(2);
           } else {
             // For sell orders, profit if current price < order price
+            // This represents the difference in what you'd get if you sold now vs. your order price
             const profitLoss = (orderPrice - currentPriceNum) * quantity;
             const profitLossPercent =
               ((orderPrice - currentPriceNum) / orderPrice) * 100;
 
-            orderWithPnL.profitLoss = profitLoss.toFixed(2);
+            // For SELL orders, show a more reasonable P&L (opportunity cost)
+            // Cap at 20% of the order value to avoid extreme numbers
+            const orderValue = orderPrice * quantity;
+            const maxReasonablePnL = orderValue * 0.2;
+            const cappedProfitLoss = Math.max(
+              -maxReasonablePnL,
+              Math.min(maxReasonablePnL, profitLoss),
+            );
+
+            orderWithPnL.profitLoss = cappedProfitLoss.toFixed(2);
             orderWithPnL.profitLossPercent = profitLossPercent.toFixed(2);
           }
         }
