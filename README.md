@@ -1,99 +1,192 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Binance Telegram Bot
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A NestJS-based Telegram bot that connects to Binance API to provide real-time wallet balance, order information, and trading notifications.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Features
 
-## Description
+- 🤖 **Telegram Bot Integration** - Interactive bot with commands
+- 💰 **Wallet Balance** - Get real-time wallet balances
+- 📋 **Order Management** - View open orders and order history
+- 🔔 **Real-time Notifications** - WebSocket connection for live updates
+- 🔐 **Secure API Integration** - HMAC signature authentication with Binance
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Prerequisites
 
-## Project setup
+- Node.js (v16 or higher)
+- pnpm (recommended) or npm
+- Binance API credentials
+- Telegram Bot Token
+
+## Setup
+
+### 1. Install Dependencies
 
 ```bash
-$ pnpm install
+pnpm install
 ```
 
-## Compile and run the project
+### 2. Environment Configuration
+
+Create a `.env` file in the root directory:
 
 ```bash
-# development
-$ pnpm run start
-
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
+cp env.example .env
 ```
 
-## Run tests
+Fill in your credentials:
+
+```env
+# Binance API Configuration
+BINANCE_API_KEY=your_binance_api_key_here
+BINANCE_API_SECRET=your_binance_api_secret_here
+
+# Telegram Bot Configuration
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
+TELEGRAM_CHAT_ID=your_telegram_chat_id_here
+
+# Optional: Environment
+NODE_ENV=development
+```
+
+### 3. Get Binance API Credentials
+
+1. Log in to your Binance account
+2. Go to API Management
+3. Create a new API key
+4. Enable "Enable Spot & Margin Trading" and "Enable Reading"
+5. Copy the API Key and Secret Key
+
+### 4. Create Telegram Bot
+
+1. Message [@BotFather](https://t.me/botfather) on Telegram
+2. Send `/newbot` command
+3. Follow the instructions to create your bot
+4. Copy the bot token
+
+### 5. Get Your Chat ID
+
+1. Start a conversation with your bot
+2. Send any message to the bot
+3. Visit: `https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates`
+4. Find your `chat_id` in the response
+
+## Running the Bot
+
+### Development Mode
 
 ```bash
-# unit tests
-$ pnpm run test
+pnpm run start:dev
+```
+
+### Production Mode
+
+```bash
+pnpm run build
+pnpm run start:prod
+```
+
+## Bot Commands
+
+Once the bot is running, you can use these commands in Telegram:
+
+- `/start` - Start the bot and see welcome message
+- `/balance` - Get your wallet balance
+- `/orders` - Get your open orders
+- `/help` - Show help message
+
+## Project Structure
+
+```
+src/
+├── binance/           # Binance API integration
+│   ├── binance.module.ts
+│   └── binance.service.ts
+├── config/            # Configuration management
+│   ├── config.module.ts
+│   └── config.service.ts
+├── telegram/          # Telegram bot integration
+│   ├── telegram.module.ts
+│   └── telegram.service.ts
+├── app.controller.ts
+├── app.service.ts
+├── app.module.ts
+└── main.ts
+```
+
+## API Endpoints
+
+The bot also exposes HTTP endpoints:
+
+- `GET /` - Health check
+
+## Security Considerations
+
+- Never commit your `.env` file to version control
+- Use environment-specific API keys
+- Regularly rotate your API credentials
+- Monitor your bot's activity
+
+## Error Handling
+
+The bot includes comprehensive error handling:
+
+- API credential validation
+- Network error recovery
+- WebSocket reconnection logic
+- User-friendly error messages
+
+## Development
+
+### Running Tests
+
+```bash
+# Unit tests
+pnpm run test
 
 # e2e tests
-$ pnpm run test:e2e
+pnpm run test:e2e
 
-# test coverage
-$ pnpm run test:cov
+# Test coverage
+pnpm run test:cov
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### Code Formatting
 
 ```bash
-$ pnpm install -g mau
-$ mau deploy
+pnpm run format
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Linting
 
-## Resources
+```bash
+pnpm run lint
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+## Troubleshooting
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+### Common Issues
 
-## Support
+1. **"Binance API credentials are missing"**
+   - Check your `.env` file
+   - Ensure variables are properly set
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+2. **"Failed to get wallet balance"**
+   - Verify your Binance API permissions
+   - Check if API key has reading permissions
 
-## Stay in touch
+3. **Bot not responding**
+   - Verify Telegram bot token
+   - Check if bot is running
+   - Ensure chat ID is correct
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+This project is licensed under the MIT License.
